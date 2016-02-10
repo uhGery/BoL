@@ -3,7 +3,7 @@
 	by uhGery
 	V0.1
 ]]--
-local version = "0.1"
+local version = "0.5"
 
 local AUTOUPDATE = true
 local UPDATE_HOST = "raw.github.com"
