@@ -167,8 +167,8 @@ end
 
 function Combo()
 	if Config.KeySettings.Combo and ValidTarget(Target) and not Target.dead then
-		if Config.ComboSettings.UseE and GetDistance(Target) <= 750 then
-			castE()
+		if Config.ComboSettings.UseE and GetDistance(Target) <= 650 then
+			CastSpell(_E)
 		end
 		if Config.ComboSettings.UseQ then
 			castQ()
