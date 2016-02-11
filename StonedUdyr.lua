@@ -1,9 +1,9 @@
 --[[
 	StonedUdyr
 	by uhGery
-	V0.4
+	V0.4.1
 ]]--
-local version = "0.4"
+local version = "0.4.1"
 
 local AUTOUPDATE = true
 local UPDATE_HOST = "raw.github.com"
@@ -164,7 +164,7 @@ end
 
 function Combo()
 	if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 1 and ValidTarget(Target) and not Target.dead then
-		if GetDistance(Target) <= 650 then
+		if GetDistance(Target) <= 650 and EREADY then
 			CastSpell(_E)
 		end
 		if Config.ComboSettings.StyleCombo == 1 then
@@ -175,7 +175,7 @@ function Combo()
 		end
 	end
 	if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 2 and ValidTarget(Target) and not Target.dead then
-		if GetDistance(Target) <= 650 then
+		if GetDistance(Target) <= 650 and EREADY then
 			CastSpell(_E)
 		end
 		if Config.ComboSettings.StyleCombo == 2 then
@@ -264,12 +264,6 @@ end
 function castW()
 	if WREADY and GetDistance(Target) <= Spells.spellW.range then
 		CastSpell(_W)
-	end
-end
-
-function castE()
-	if EREADY and GetDistance(Target) <= Spells.spellE.range then
-		CastSpell(_E)
 	end
 end
 
