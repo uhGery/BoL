@@ -1,9 +1,9 @@
 --[[
 	StonedUdyr
 	by uhGery
-	V0.1
+	V0.3
 ]]--
-local version = "0.5"
+local version = "0.3"
 
 local AUTOUPDATE = true
 local UPDATE_HOST = "raw.github.com"
@@ -47,7 +47,7 @@ MyTrueRange = 190
 Spells = {
 	spellQ = {range = 190}, 
 	spellW = {range = 190},
-	spellE = {range = 600},
+	spellE = {range = 190},
 	spellR = {range = 190},
 }
 
@@ -171,11 +171,12 @@ function OnTick()
 	Combo()	
 	Laneclear()
 	Jungleclear()
+	Harass()
 end
 
 function Combo()
 	if Config.KeySettings.Combo and ValidTarget(Target) and not Target.dead then
-		if Config.ComboSettings.UseE then
+		if Config.ComboSettings.UseE and GetDistance(Target) <= 750 then
 			castE()
 		end
 		if Config.ComboSettings.UseQ then
@@ -204,12 +205,12 @@ function Jungleclear()
 				end
 		end
 			if Target ~= nil and ValidTarget(Target) and Config.JungleclearSettings.StyleJC == 1 then
-				if QREADY and Config.JungleclearSettings.UseQ and GetDistance(Target) < Spells.spellQ.range then CastSpell(_Q) return end
-				if WREADY and Config.JungleclearSettings.UseW and GetDistance(Target) < Spells.spellW.range then CastSpell(_W) return end
+				if QREADY and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_Q) return end
+				if WREADY and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) return end
 			end
 			if Target ~= nil and ValidTarget(Target) and Config.JungleclearSettings.StyleJC == 2 then
-				if RREADY and Config.JungleclearSettings.UseE and GetDistance(Target) < Spells.spellE.range then CastSpell(_R) return end
-				if WREADY and Config.JungleclearSettings.UseW and GetDistance(Target) < Spells.spellW.range then CastSpell(_W) return end
+				if RREADY and GetDistance(Target) <= Spells.spellE.range then CastSpell(_R) return end
+				if WREADY and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) return end
 			end
 		end
 end
@@ -229,14 +230,25 @@ function Laneclear()
 				end
 			end
 			if Target ~= nil and ValidTarget(Target) then
-				if QREADY and Config.LaneclearSettings.UseQ and GetDistance(Target) > Spells.spellQ.range then CastSpell(_Q) return end
-				if WREADY and Config.LaneclearSettings.UseW and GetDistance(Target) > Spells.spellW.range then CastSpell(_W) return end
-				if EREADY and Config.LaneclearSettings.UseE and GetDistance(Target) > Spells.spellE.range then CastSpell(_E) return end
-				if RREADY and Config.LaneclearSettings.UseR and GetDistance(Target) > Spells.spellR.range then CastSpell(_R) return end
+				if QREADY and Config.LaneclearSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_Q) return end
+				if WREADY and Config.LaneclearSettings.UseW and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) return end
+				if EREADY and Config.LaneclearSettings.UseE and GetDistance(Target) <= Spells.spellE.range then CastSpell(_E) return end
+				if RREADY and Config.LaneclearSettings.UseR and GetDistance(Target) <= Spells.spellR.range then CastSpell(_R) return end
 			end
 	end
 end
 
+function Harass()
+	if Config.KeySettings.Harass then
+		if Target and ValidTarget(Target) and not Target.dead then
+			if QREADY and Config.HarassSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_E) end
+			if WREADY and Config.HarassSettings.UseW and GetDistance(Target) <= Spells.spellW.range then CastSpell(_E) end
+			if EREADY and Config.HarassSettings.UseE and GetDistance(Target) <= Spells.spellE.range then CastSpell(_E) end
+			if RREADY and Config.HarassSettings.UseR and GetDistance(Target) <= Spells.spellR.range then CastSpell(_E) end
+			return
+		end
+	end
+end
 
 function ValidRequest()
     if os.clock() - LastRequest < TimeRequest() then
@@ -248,26 +260,25 @@ function ValidRequest()
 end
 
 function castQ()
-	if QREADY and GetDistance(Target) < Spells.spellQ.range then
+	if QREADY and GetDistance(Target) <= Spells.spellQ.range then
 		CastSpell(_Q)
 	end
 end
 
 function castW()
-	if WREADY and GetDistance(Target) < Spells.spellW.range then
+	if WREADY and GetDistance(Target) <= Spells.spellW.range then
 		CastSpell(_W)
 	end
 end
 
 function castE()
-	if EREADY and GetDistance(Target) < Spells.spellE.range then
+	if EREADY and GetDistance(Target) <= Spells.spellE.range then
 		CastSpell(_E)
 	end
 end
 
 function castR()
-	if RREADY and GetDistance(Target) < Spells.spellR.range then
+	if RREADY and GetDistance(Target) <= Spells.spellR.range then
 		CastSpell(_R)
 	end
 end
-
