@@ -1,9 +1,9 @@
 --[[
 	StonedUdyr
 	by uhGery
-	V0.3
+	V0.4
 ]]--
-local version = "0.3"
+local version = "0.4"
 
 local AUTOUPDATE = true
 local UPDATE_HOST = "raw.github.com"
@@ -69,7 +69,7 @@ local EnemyMinions = minionManager(MINION_ENEMY, 600, myHero, MINION_SORT_MAXHEA
 
 function getTarg()
 	ts:update()
-	if _G.AutoCarry and ValidTarget(_G.AutoCarry.Crosshair:GetTarget()) then _G.AutoCarry.Crosshair:SetSkillCrosshairRange(300) return _G.AutoCarry.Crosshair:GetTarget() end		
+	if _G.AutoCarry and ValidTarget(_G.AutoCarry.Crosshair:GetTarget()) then _G.AutoCarry.Crosshair:SetSkillCrosshairRange(800) return _G.AutoCarry.Crosshair:GetTarget() end		
 	if ValidTarget(SelectedTarget) and SelectedTarget.type == myHero.type then return SelectedTarget end
 	if MMALoaded and ValidTarget(_G.MMA_Target) then return _G.MMA_Target end
 	return ts.target
@@ -129,10 +129,7 @@ function DrawMenu()
 		Config.KeySettings:addParam("LastHit", "LastHit Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("X"))
 	
 	Config:addSubMenu("[Combo]", "ComboSettings")
-		Config.ComboSettings:addParam("UseQ", "Use Q in Combo", SCRIPT_PARAM_ONOFF, true)
-		Config.ComboSettings:addParam("UseW", "Use W in Combo", SCRIPT_PARAM_ONOFF, true)
-		Config.ComboSettings:addParam("UseE", "Use E in Combo", SCRIPT_PARAM_ONOFF, true)
-		Config.ComboSettings:addParam("UseR", "Use R in Combo", SCRIPT_PARAM_ONOFF, true)
+		Config.ComboSettings:addParam("StyleCombo", "Style Combo", SCRIPT_PARAM_LIST, 1, {"Tiger", "Phoenix"})
 	
 	Config:addSubMenu("[Harass]", "HarassSettings")
 		Config.HarassSettings:addParam("UseQ", "Use Q in Harass", SCRIPT_PARAM_ONOFF, true)
@@ -166,17 +163,25 @@ function OnTick()
 end
 
 function Combo()
-	if Config.KeySettings.Combo and ValidTarget(Target) and not Target.dead then
-		if Config.ComboSettings.UseE and GetDistance(Target) <= 650 then
+	if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 1 and ValidTarget(Target) and not Target.dead then
+		if GetDistance(Target) <= 650 then
 			CastSpell(_E)
 		end
-		if Config.ComboSettings.UseQ then
+		if Config.ComboSettings.StyleCombo == 1 then
 			castQ()
 		end
-		if Config.ComboSettings.UseR then
+		if Config.ComboSettings.StyleCombo == 1 and getHealthPercent() <= 75 then
+			castW()
+		end
+	end
+	if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 2 and ValidTarget(Target) and not Target.dead then
+		if GetDistance(Target) <= 650 then
+			CastSpell(_E)
+		end
+		if Config.ComboSettings.StyleCombo == 2 then
 			castR()
 		end
-		if Config.ComboSettings.UseW and getHealthPercent() <= 75 then
+		if Config.ComboSettings.StyleCombo == 2 and getHealthPercent() <= 75 then
 			castW()
 		end
 	end
@@ -232,10 +237,10 @@ end
 function Harass()
 	if Config.KeySettings.Harass then
 		if Target and ValidTarget(Target) and not Target.dead then
-			if QREADY and Config.HarassSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_E) end
-			if WREADY and Config.HarassSettings.UseW and GetDistance(Target) <= Spells.spellW.range then CastSpell(_E) end
-			if EREADY and Config.HarassSettings.UseE and GetDistance(Target) <= Spells.spellE.range then CastSpell(_E) end
-			if RREADY and Config.HarassSettings.UseR and GetDistance(Target) <= Spells.spellR.range then CastSpell(_E) end
+			if QREADY and Config.HarassSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_Q) end
+			if WREADY and Config.HarassSettings.UseW and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) end
+			if EREADY and Config.HarassSettings.UseE and GetDistance(Target) <= 250 then CastSpell(_E) end
+			if RREADY and Config.HarassSettings.UseR and GetDistance(Target) <= Spells.spellR.range then CastSpell(_R) end
 			return
 		end
 	end
