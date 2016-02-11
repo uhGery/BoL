@@ -30,17 +30,8 @@ if AUTOUPDATE then
 	end
 end
 
-if FileExist(LIB_PATH .. "/VPrediction.lua") then require "VPrediction" end
-
 if myHero.charName ~= "Udyr" then return end
 
---------------------------------
---          VARIABLES         --
---------------------------------
-Tiger = false
-Turtle = false
-Bear = false
-Phoenix = false
 loaded = false
 MyTrueRange = 190
 
@@ -209,7 +200,7 @@ function Jungleclear()
 				if WREADY and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) return end
 			end
 			if Target ~= nil and ValidTarget(Target) and Config.JungleclearSettings.StyleJC == 2 then
-				if RREADY and GetDistance(Target) <= Spells.spellE.range then CastSpell(_R) return end
+				if RREADY and GetDistance(Target) <= Spells.spellR.range then CastSpell(_R) return end
 				if WREADY and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) return end
 			end
 		end
