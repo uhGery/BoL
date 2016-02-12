@@ -1,17 +1,22 @@
 --[[
 	StonedUdyr
 	by uhGery
-	V0.4.1
+	V 0.5
 ]]--
-local version = "0.4.1"
+local version = "0.5"
 
 local AUTOUPDATE = true
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/uhGery/BoL/master/StonedUdyr.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = SCRIPT_PATH..GetCurrentEnv().FILE_NAME
 local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
+local lastRG = 0
+local lastICFJ = 0
+local lastIDCF = 0
+local lastICF = 0
 
 function _AutoupdaterMsg(msg) print("<font color=\"#1C942A\">Stoned</font><font color =\"#DBD142\">Udyr</font> <font color=\"#FFFFFF\">"..msg..".</font>") end
+
 if AUTOUPDATE then
 	local ServerData = GetWebResult(UPDATE_HOST, "/uhGery/BoL/master/Version/StonedUdyr.version")
 	if ServerData then
@@ -85,21 +90,11 @@ function getManaPercent(unit)
     return (obj.mana / obj.maxMana) * 100
 end
 
-function isRecall(hero)
-	if hero ~= nil and ValidTarget(hero) then 
-		for i = 1, hero.buffCount, 1 do
-			local buff = hero:getBuff(i)
-			if buff == "Recall" or buff == "SummonerTeleport" or buff == "RecallImproved" then return true end
-		end
-    end
-	return false
-end
-
 function OnLoad()
 	if not loaded then
 		loaded = true
 		DrawMenu()
-	
+		
 		print("<font color=\"#1C942A\">Stoned</font><font color =\"#DBD142\">Udyr</font> <font color =\"#FF0000\">by uhGery</font> <font color =\"#000000\">V"..version.."</font>")
 
 		Config.KeySettings:permaShow("Combo")
@@ -113,6 +108,7 @@ function OnLoad()
 		else
 			orbwalkCheck()
 		end
+		
 	end
 	
 end
@@ -145,6 +141,10 @@ function DrawMenu()
 	
 	Config:addSubMenu("[Jungleclear]", "JungleclearSettings")
 		Config.JungleclearSettings:addParam("StyleJC", "Style Jungleclear", SCRIPT_PARAM_LIST, 1, {"Tiger", "Phoenix"})
+		
+	Config:addSubMenu("[Auto]", "Auto")
+		Config.Auto:addParam("autoPots", "Auto Potions usage", SCRIPT_PARAM_ONOFF, true)
+		Config.Auto:addParam("autoPotsHealth", "% Health for autopots", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 	
 end
 
@@ -160,6 +160,7 @@ function OnTick()
 	Laneclear()
 	Jungleclear()
 	Harass()
+	AutoPotion() 
 end
 
 function Combo()
@@ -270,5 +271,46 @@ end
 function castR()
 	if RREADY and GetDistance(Target) <= Spells.spellR.range then
 		CastSpell(_R)
+	end
+end
+
+function AutoPotion()
+
+if os.clock() - lastRG < 15 then return end
+	for SLOT = ITEM_1, ITEM_6 do
+		if myHero:GetSpellData(SLOT).name == "RegenerationPotion"  then
+			if myHero:CanUseSpell(SLOT) == READY and getHealthPercent() <= Config.Auto.autoPotsHealth then
+				CastSpell(SLOT)	
+				lastRG = os.clock()				
+			end
+		end
+	end
+
+if os.clock() - lastICF < 12 then return end
+	for SLOT = ITEM_1, ITEM_6 do
+		if myHero:GetSpellData(SLOT).name == "ItemCrystalFlask"  then
+			if myHero:CanUseSpell(SLOT) == READY and getHealthPercent() <= Config.Auto.autoPotsHealth then
+				CastSpell(SLOT)	
+				lastICF = os.clock()				
+			end
+		end
+	end
+if os.clock() - lastICFJ < 8 then return end
+	for SLOT = ITEM_1, ITEM_6 do
+		if myHero:GetSpellData(SLOT).name == "ItemCrystalFlaskJungle"  then
+			if myHero:CanUseSpell(SLOT) == READY and getHealthPercent() <= Config.Auto.autoPotsHealth then
+				CastSpell(SLOT)	
+				lastICFJ = os.clock()				
+			end
+		end
+	end
+if os.clock() - lastIDCF < 12 then return end
+	for SLOT = ITEM_1, ITEM_6 do
+		if myHero:GetSpellData(SLOT).name == "ItemDarkCrystalFlask"  then
+			if myHero:CanUseSpell(SLOT) == READY and getHealthPercent() <= Config.Auto.autoPotsHealth then
+				CastSpell(SLOT)	
+				lastIDCF = os.clock()				
+			end
+		end
 	end
 end
