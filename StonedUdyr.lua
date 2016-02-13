@@ -173,7 +173,7 @@ end
 
 function Combo()
 	if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 1 and ValidTarget(Target) and not Target.dead then
-		if EREADY and then
+		if EREADY then
 			if os.clock() - bearT < 3 then return end
 				if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
 					CastSpell(_E)
@@ -197,7 +197,7 @@ function Combo()
 	end
 	
 	if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 2 and ValidTarget(Target) and not Target.dead then
-		if EREADY and then
+		if EREADY then
 			if os.clock() - bearT < 3 then return end
 				if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
 					CastSpell(_E)
