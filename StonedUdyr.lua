@@ -1,9 +1,9 @@
 --[[
 	StonedUdyr
 	by uhGery
-	V 0.5
+	V 0.6
 ]]--
-local version = "0.5"
+local version = "0.6"
 
 local AUTOUPDATE = true
 local UPDATE_HOST = "raw.github.com"
@@ -14,6 +14,13 @@ local lastRG = 0
 local lastICFJ = 0
 local lastIDCF = 0
 local lastICF = 0
+local loaded = false
+local MyTrueRange = 190
+local phoenix = false
+local turtle = false
+local bear = false
+local tigerT = 0
+local bearT = 0
 
 function _AutoupdaterMsg(msg) print("<font color=\"#1C942A\">Stoned</font><font color =\"#DBD142\">Udyr</font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
@@ -25,7 +32,7 @@ if AUTOUPDATE then
 			if tonumber(version) < ServerVersion then
 				_AutoupdaterMsg("New version available "..ServerVersion)
 				_AutoupdaterMsg("Updating, please don't press F9")
-				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () _AutoupdaterMsg("Successfully updated. ("..version.." => "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
+				DelayAction(function() DownloadFile(UPDATE_URL, UPDATE_FILE_PATH, function () _AutoupdaterMsg("Successfully updated. ("..version.." >= "..ServerVersion.."), press F9 twice to load the updated version.") end) end, 3)
 			else
 				_AutoupdaterMsg("You have got the latest version ("..ServerVersion..")")
 			end
@@ -36,9 +43,6 @@ if AUTOUPDATE then
 end
 
 if myHero.charName ~= "Udyr" then return end
-
-loaded = false
-MyTrueRange = 190
 
 Spells = {
 	spellQ = {range = 190}, 
@@ -110,7 +114,7 @@ function OnLoad()
 		end
 		
 	end
-	
+	AddUpdateBuffCallback()
 end
 
 function DrawMenu()
@@ -126,6 +130,10 @@ function DrawMenu()
 	
 	Config:addSubMenu("[Combo]", "ComboSettings")
 		Config.ComboSettings:addParam("StyleCombo", "Style Combo", SCRIPT_PARAM_LIST, 1, {"Tiger", "Phoenix"})
+		Config.ComboSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config.ComboSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config.ComboSettings:addParam("manaE", "% mana min for use E", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config.ComboSettings:addParam("manaR", "% mana min for use R", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 	
 	Config:addSubMenu("[Harass]", "HarassSettings")
 		Config.HarassSettings:addParam("UseQ", "Use Q in Harass", SCRIPT_PARAM_ONOFF, true)
@@ -165,25 +173,48 @@ end
 
 function Combo()
 	if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 1 and ValidTarget(Target) and not Target.dead then
-		if GetDistance(Target) <= 650 and EREADY then
-			CastSpell(_E)
+		if EREADY and then
+			if os.clock() - bearT < 3 then return end
+				if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
+					CastSpell(_E)
+					phoenix = false
+					turtle = false
+					bearT = os.clock()
+				end
 		end
-		if Config.ComboSettings.StyleCombo == 1 then
-			castQ()
-		end
-		if Config.ComboSettings.StyleCombo == 1 and getHealthPercent() <= 75 then
-			castW()
+		if os.clock() - tigerT < 5 then return end
+			if GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.ComboSettings.manaQ then
+				CastSpell(_Q)
+				tigerT = os.clock()
+				phoenix = false
+				turtle = false
+			end
+		if not turtle and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
+			CastSpell(_W)
+			turtle = true
+			phoenix = false
 		end
 	end
+	
 	if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 2 and ValidTarget(Target) and not Target.dead then
-		if GetDistance(Target) <= 650 and EREADY then
-			CastSpell(_E)
+		if EREADY and then
+			if os.clock() - bearT < 3 then return end
+				if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
+					CastSpell(_E)
+					phoenix = false
+					turtle = false
+					bearT = os.clock()
+				end
 		end
-		if Config.ComboSettings.StyleCombo == 2 then
-			castR()
+		if not phoenix and GetDistance(Target) <= Spells.spellR.range and getManaPercent() >= Config.ComboSettings.manaR then
+			CastSpell(_R)
+			phoenix = true
+			turtle = false
 		end
-		if Config.ComboSettings.StyleCombo == 2 and getHealthPercent() <= 75 then
-			castW()
+		if not turtle and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
+			CastSpell(_W)
+			turtle = true
+			phoenix = false
 		end
 	end
 end
@@ -254,24 +285,6 @@ function ValidRequest()
         LastRequest = os.clock()
         return true
     end
-end
-
-function castQ()
-	if QREADY and GetDistance(Target) <= Spells.spellQ.range then
-		CastSpell(_Q)
-	end
-end
-
-function castW()
-	if WREADY and GetDistance(Target) <= Spells.spellW.range then
-		CastSpell(_W)
-	end
-end
-
-function castR()
-	if RREADY and GetDistance(Target) <= Spells.spellR.range then
-		CastSpell(_R)
-	end
 end
 
 function AutoPotion()
