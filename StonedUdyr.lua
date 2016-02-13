@@ -1,9 +1,9 @@
 --[[
 	StonedUdyr
 	by uhGery
-	V 0.6
+	V 0.7
 ]]--
-local version = "0.6"
+local version = "0.7"
 
 local AUTOUPDATE = true
 local UPDATE_HOST = "raw.github.com"
@@ -18,9 +18,14 @@ local loaded = false
 local MyTrueRange = 190
 local phoenix = false
 local turtle = false
+local tiger = false
 local bear = false
 local tigerT = 0
 local bearT = 0
+local stuned = 0
+local stunT = 0
+local tigerTJC = 0
+local tigerTLC = 0
 
 function _AutoupdaterMsg(msg) print("<font color=\"#1C942A\">Stoned</font><font color =\"#DBD142\">Udyr</font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
@@ -114,7 +119,8 @@ function OnLoad()
 		end
 		
 	end
-	AddUpdateBuffCallback()
+	AddApplyBuffCallback(Buff_Add)
+	AddRemoveBuffCallback(Buff_Rem)
 end
 
 function DrawMenu()
@@ -143,16 +149,24 @@ function DrawMenu()
 	
 	Config:addSubMenu("[Laneclear]", "LaneclearSettings")
 		Config.LaneclearSettings:addParam("UseQ", "Use Q in Laneclear", SCRIPT_PARAM_ONOFF, true)
+		Config.LaneclearSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 		Config.LaneclearSettings:addParam("UseW", "Use W in Laneclear", SCRIPT_PARAM_ONOFF, true)
+		Config.LaneclearSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 		Config.LaneclearSettings:addParam("UseE", "Use E in Laneclear", SCRIPT_PARAM_ONOFF, true)
+		Config.LaneclearSettings:addParam("manaE", "% mana min for use E", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 		Config.LaneclearSettings:addParam("UseR", "Use R in Laneclear", SCRIPT_PARAM_ONOFF, true)
-	
+		Config.LaneclearSettings:addParam("manaR", "% mana min for use R", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		
 	Config:addSubMenu("[Jungleclear]", "JungleclearSettings")
 		Config.JungleclearSettings:addParam("StyleJC", "Style Jungleclear", SCRIPT_PARAM_LIST, 1, {"Tiger", "Phoenix"})
+		Config.JungleclearSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config.JungleclearSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config.JungleclearSettings:addParam("manaR", "% mana min for use R", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 		
 	Config:addSubMenu("[Auto]", "Auto")
 		Config.Auto:addParam("autoPots", "Auto Potions usage", SCRIPT_PARAM_ONOFF, true)
 		Config.Auto:addParam("autoPotsHealth", "% Health for autopots", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config.Auto:addParam("upgradeTB", "Buy Trinket Blue", SCRIPT_PARAM_ONOFF, true)
 	
 end
 
@@ -169,54 +183,109 @@ function OnTick()
 	Jungleclear()
 	Harass()
 	AutoPotion() 
+	StunCheck()
 end
 
 function Combo()
 	if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 1 and ValidTarget(Target) and not Target.dead then
-		if EREADY then
-			if os.clock() - bearT < 3 then return end
-				if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
-					CastSpell(_E)
+		if myHero.level >= 3 then
+			if not stuned then
+				if not bear and EREADY and GetDistance(Target) <= 650 and getManaPercent() >= Config.ComboSettings.manaE then
+						CastSpell(_E)
+						tiger = false
+						turtle = false
+						phoenix = false
+						stunT = os.clock()
+					end
+			if stuned then
+				if os.clock() - stunT < 6 then return end
+					if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
+						CastSpell(_E)
+						phoenix = false
+						turtle = false
+						tiger = false
+						stunT = os.clock()
+					end
+			end
+		end
+			if not tiger and QREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaQ and stuned then
+					CastSpell(_Q)
 					phoenix = false
 					turtle = false
-					bearT = os.clock()
+					bear = false
 				end
-		end
-		if os.clock() - tigerT < 5 then return end
-			if GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.ComboSettings.manaQ then
-				CastSpell(_Q)
-				tigerT = os.clock()
-				phoenix = false
-				turtle = false
+			if not turtle and WREADY and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
+					CastSpell(_W)
+					phoenix = false
+					tiger = false
+					bear = false
 			end
-		if not turtle and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
-			CastSpell(_W)
-			turtle = true
-			phoenix = false
+		end
+		if myHero.level <= 2 then
+			if not tiger and QREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaQ then
+					CastSpell(_Q)
+					phoenix = false
+					turtle = false
+					bear = false
+				end
+			if not turtle and WREADY and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
+					CastSpell(_W)
+					phoenix = false
+					tiger = false
+					bear = false
+			end
 		end
 	end
 	
 	if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 2 and ValidTarget(Target) and not Target.dead then
-		if EREADY then
-			if os.clock() - bearT < 3 then return end
-				if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
+		if myHero.level >= 3 then
+			if not stuned then
+				if not bear and EREADY and GetDistance(Target) <= 650 and getManaPercent() >= Config.ComboSettings.manaE then
 					CastSpell(_E)
-					phoenix = false
+					tiger = false
 					turtle = false
-					bearT = os.clock()
+					phoenix = false
+					stunT = os.clock()
 				end
-		end
-		if not phoenix and GetDistance(Target) <= Spells.spellR.range and getManaPercent() >= Config.ComboSettings.manaR then
-			CastSpell(_R)
-			phoenix = true
-			turtle = false
-		end
-		if not turtle and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
-			CastSpell(_W)
-			turtle = true
-			phoenix = false
+				if stuned then
+					if os.clock() - stunT < 6 then return end
+						if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
+							CastSpell(_E)
+							phoenix = false
+							turtle = false
+							tiger = false
+							stunT = os.clock()
+						end
+				end
+			end
+			if not phoenix and RREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaR and stuned then
+				CastSpell(_R)
+				turtle = false
+				tiger = false
+				bear = false
+			end
+			if not turtle and WREADY and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
+				CastSpell(_W)
+				phoenix = false
+				tiger = false
+				bear = false
+			end
 		end
 	end
+	if myHero.level <= 2 then
+			if not phoenix and RREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaR then
+				CastSpell(_R)
+				turtle = false
+				tiger = false
+				bear = false
+			end
+			if not turtle and WREADY and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
+				CastSpell(_W)
+				phoenix = false
+				tiger = false
+				bear = false
+			end
+		end
 end
 
 function Jungleclear()
@@ -233,12 +302,31 @@ function Jungleclear()
 				end
 		end
 			if Target ~= nil and ValidTarget(Target) and Config.JungleclearSettings.StyleJC == 1 then
-				if QREADY and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_Q) return end
-				if WREADY and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) return end
+				if os.clock() - tigerTJC < 5 then return end
+					if QREADY and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.JungleclearSettings.manaQ then 
+						CastSpell(_Q)
+						turtle = false
+						phoenix = false
+						tigerTJC = os.clock()
+					end
+				if WREADY and GetDistance(Target) <= Spells.spellW.range and getManaPercent() >= Config.JungleclearSettings.manaW then
+					if turtle then return end
+						CastSpell(_W)
+						turtle = true
+						phoenix = false		
+				end
 			end
 			if Target ~= nil and ValidTarget(Target) and Config.JungleclearSettings.StyleJC == 2 then
-				if RREADY and GetDistance(Target) <= Spells.spellR.range then CastSpell(_R) return end
-				if WREADY and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) return end
+				if RREADY and not phoenix and GetDistance(Target) <= Spells.spellR.range and getManaPercent() >= Config.JungleclearSettings.manaR then
+					CastSpell(_R)
+					phoenix = true
+					turtle = false
+				end
+				if not turtle and WREADY and GetDistance(Target) <= Spells.spellW.range and getManaPercent() >= Config.JungleclearSettings.manaW then
+					CastSpell(_W)
+					turtle = true
+					phoenix = false		
+				end
 			end
 		end
 end
@@ -258,10 +346,28 @@ function Laneclear()
 				end
 			end
 			if Target ~= nil and ValidTarget(Target) then
-				if QREADY and Config.LaneclearSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_Q) return end
-				if WREADY and Config.LaneclearSettings.UseW and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) return end
-				if EREADY and Config.LaneclearSettings.UseE and GetDistance(Target) <= Spells.spellE.range then CastSpell(_E) return end
-				if RREADY and Config.LaneclearSettings.UseR and GetDistance(Target) <= Spells.spellR.range then CastSpell(_R) return end
+				if os.clock() - tigerTLC < 5 then return end
+					if QREADY and Config.LaneclearSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.LaneclearSettings.manaQ then
+						CastSpell(_Q)
+						turtle = false
+						phoenix = false
+						tigerTLC = os.clock()
+					end
+				if not turtle and WREADY and Config.LaneclearSettings.UseW and GetDistance(Target) <= Spells.spellW.range and getManaPercent() >= Config.LaneclearSettings.manaW then 
+					CastSpell(_W)
+					turtle = true
+					phoenix = false
+				end
+				if EREADY and Config.LaneclearSettings.UseE and GetDistance(Target) <= Spells.spellE.range and getManaPercent() >= Config.LaneclearSettings.manaE then 
+					CastSpell(_E)
+					turtle = false
+					phoenix = false
+				end
+				if not phoenix and RREADY and Config.LaneclearSettings.UseR and GetDistance(Target) <= Spells.spellR.range and getManaPercent() >= Config.LaneclearSettings.manaR then 
+					CastSpell(_R)
+					turtle = false
+					phoenix = true
+				end
 			end
 	end
 end
@@ -269,11 +375,10 @@ end
 function Harass()
 	if Config.KeySettings.Harass then
 		if Target and ValidTarget(Target) and not Target.dead then
+			if EREADY and Config.HarassSettings.UseE and GetDistance(Target) <= Spells.spellE.range then CastSpell(_E) end
 			if QREADY and Config.HarassSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_Q) end
-			if WREADY and Config.HarassSettings.UseW and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) end
-			if EREADY and Config.HarassSettings.UseE and GetDistance(Target) <= 250 then CastSpell(_E) end
 			if RREADY and Config.HarassSettings.UseR and GetDistance(Target) <= Spells.spellR.range then CastSpell(_R) end
-			return
+			if WREADY and Config.HarassSettings.UseW and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) end
 		end
 	end
 end
@@ -327,3 +432,59 @@ if os.clock() - lastIDCF < 12 then return end
 		end
 	end
 end
+
+function StunCheck()
+	if TargetHaveBuff("udyrbearstuncheck", Target) then
+		stuned = true
+		end
+	if not TargetHaveBuff("udyrbearstuncheck", Target) then
+		stuned = false
+	end
+end
+
+function Buff_Add(unit, buff)
+	for i = 1, myHero.buffCount do
+        local tBuff = myHero:getBuff(i)
+        if BuffIsValid(tBuff) then
+			if tBuff.name == "udyrtigerpunch" then
+				tiger = true
+			end
+			if tBuff.name == "udyrturtleactivation" then
+				turtle = true
+			end
+			if tBuff.name == "udyrbearactivation" then
+				bear = true
+			end
+			if tBuff.name =="udyrphoenixactivation" then
+				phoenix = true
+			end
+		end
+	end
+end	
+
+function Buff_Rem(unit, buff)
+	for i = 1, myHero.buffCount do
+        local tBuff = myHero:getBuff(i)
+        if BuffIsValid(tBuff) then
+			if tBuff.name == "udyrtigerpunch" then
+				tiger = false
+			end
+			if tBuff.name == "udyrturtleactivation" then
+				turtle = false
+			end
+			if tBuff.name == "udyrbearactivation" then
+				bear = false
+			end
+			if tBuff.name =="udyrphoenixactivation" then
+				phoenix = false
+			end
+		end
+	end
+	if buff.name == "recall" and unit.isMe then
+		if myHero.level >= 9 then
+			if Config.Auto.UpgradeTB then
+				BuyItem(3363)
+			end
+		end
+	end
+end		
