@@ -1,9 +1,9 @@
 --[[
 	StonedUdyr
 	by uhGery
-	V 0.7
+	V 0.8
 ]]--
-local version = "0.7"
+local version = "0.8"
 
 local AUTOUPDATE = true
 local UPDATE_HOST = "raw.github.com"
@@ -26,6 +26,10 @@ local stuned = 0
 local stunT = 0
 local tigerTJC = 0
 local tigerTLC = 0
+
+if FileExist(LIB_PATH .. "/AllClass.lua") then
+	require "AllClass"
+end
 
 function _AutoupdaterMsg(msg) print("<font color=\"#1C942A\">Stoned</font><font color =\"#DBD142\">Udyr</font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 
@@ -138,6 +142,7 @@ function DrawMenu()
 		Config.ComboSettings:addParam("StyleCombo", "Style Combo", SCRIPT_PARAM_LIST, 1, {"Tiger", "Phoenix"})
 		Config.ComboSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 		Config.ComboSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config.ComboSettings:addParam("lifeW", "% life min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 		Config.ComboSettings:addParam("manaE", "% mana min for use E", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 		Config.ComboSettings:addParam("manaR", "% mana min for use R", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 	
@@ -167,6 +172,8 @@ function DrawMenu()
 		Config.Auto:addParam("autoPots", "Auto Potions usage", SCRIPT_PARAM_ONOFF, true)
 		Config.Auto:addParam("autoPotsHealth", "% Health for autopots", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 		Config.Auto:addParam("upgradeTB", "Buy Trinket Blue", SCRIPT_PARAM_ONOFF, true)
+		Config.Auto:addParam("autolevel","Auto level", SCRIPT_PARAM_ONOFF, false)
+		Config.Auto:addParam("levels","Select style", SCRIPT_PARAM_LIST, 1, {"Tiger","Phoenix"})
 	
 end
 
@@ -184,6 +191,15 @@ function OnTick()
 	Harass()
 	AutoPotion() 
 	StunCheck()
+	if VIP_USER and Config.Auto.autolevel then
+		local levelSequenceT = {nil,2,3,1,1,2,1,2,1,2,3,2,3,3,3,4,4,4}
+		local levelSequenceP = {nil,2,3,4,4,2,4,2,4,2,3,2,3,3,3,1,1,1}
+		if Config.Auto.levels == 1 then
+			autoLevelSetSequence(levelSequenceT)
+		else 
+			autoLevelSetSequence(levelSequenceP)
+		end
+	end
 end
 
 function Combo()
@@ -214,7 +230,7 @@ function Combo()
 					turtle = false
 					bear = false
 				end
-			if not turtle and WREADY and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
+			if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
 					CastSpell(_W)
 					phoenix = false
 					tiger = false
@@ -228,7 +244,7 @@ function Combo()
 					turtle = false
 					bear = false
 				end
-			if not turtle and WREADY and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
+			if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
 					CastSpell(_W)
 					phoenix = false
 					tiger = false
@@ -264,14 +280,14 @@ function Combo()
 				tiger = false
 				bear = false
 			end
-			if not turtle and WREADY and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
+			if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
 				CastSpell(_W)
 				phoenix = false
 				tiger = false
 				bear = false
 			end
 		end
-	end
+	
 	if myHero.level <= 2 then
 			if not phoenix and RREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaR then
 				CastSpell(_R)
@@ -279,13 +295,14 @@ function Combo()
 				tiger = false
 				bear = false
 			end
-			if not turtle and WREADY and getHealthPercent() <= 75 and getManaPercent() >= Config.ComboSettings.manaW then
+			if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
 				CastSpell(_W)
 				phoenix = false
 				tiger = false
 				bear = false
 			end
 		end
+	end
 end
 
 function Jungleclear()
@@ -302,30 +319,32 @@ function Jungleclear()
 				end
 		end
 			if Target ~= nil and ValidTarget(Target) and Config.JungleclearSettings.StyleJC == 1 then
-				if os.clock() - tigerTJC < 5 then return end
-					if QREADY and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.JungleclearSettings.manaQ then 
+					if not tiger and QREADY and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.JungleclearSettings.manaQ then 
 						CastSpell(_Q)
 						turtle = false
 						phoenix = false
-						tigerTJC = os.clock()
+						bear = false
 					end
-				if WREADY and GetDistance(Target) <= Spells.spellW.range and getManaPercent() >= Config.JungleclearSettings.manaW then
+				if not turtle and WREADY and GetDistance(Target) <= Spells.spellW.range and getManaPercent() >= Config.JungleclearSettings.manaW then
 					if turtle then return end
 						CastSpell(_W)
-						turtle = true
+						tiger = false
 						phoenix = false		
+						bear = false
 				end
 			end
 			if Target ~= nil and ValidTarget(Target) and Config.JungleclearSettings.StyleJC == 2 then
 				if RREADY and not phoenix and GetDistance(Target) <= Spells.spellR.range and getManaPercent() >= Config.JungleclearSettings.manaR then
 					CastSpell(_R)
-					phoenix = true
 					turtle = false
+					bear = false
+					tiger = false
 				end
 				if not turtle and WREADY and GetDistance(Target) <= Spells.spellW.range and getManaPercent() >= Config.JungleclearSettings.manaW then
 					CastSpell(_W)
-					turtle = true
-					phoenix = false		
+					tiger = false
+					phoenix = false	
+					bear = false					
 				end
 			end
 		end
@@ -346,27 +365,29 @@ function Laneclear()
 				end
 			end
 			if Target ~= nil and ValidTarget(Target) then
-				if os.clock() - tigerTLC < 5 then return end
-					if QREADY and Config.LaneclearSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.LaneclearSettings.manaQ then
-						CastSpell(_Q)
-						turtle = false
-						phoenix = false
-						tigerTLC = os.clock()
-					end
+				if not tiger and QREADY and Config.LaneclearSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.LaneclearSettings.manaQ then
+					CastSpell(_Q)
+					turtle = false
+					phoenix = false
+					bear = false
+				end
 				if not turtle and WREADY and Config.LaneclearSettings.UseW and GetDistance(Target) <= Spells.spellW.range and getManaPercent() >= Config.LaneclearSettings.manaW then 
 					CastSpell(_W)
-					turtle = true
+					tiger = false
 					phoenix = false
+					bear = false
 				end
-				if EREADY and Config.LaneclearSettings.UseE and GetDistance(Target) <= Spells.spellE.range and getManaPercent() >= Config.LaneclearSettings.manaE then 
+				if not bear and EREADY and Config.LaneclearSettings.UseE and GetDistance(Target) <= Spells.spellE.range and getManaPercent() >= Config.LaneclearSettings.manaE then 
 					CastSpell(_E)
 					turtle = false
 					phoenix = false
+					tiger = false
 				end
 				if not phoenix and RREADY and Config.LaneclearSettings.UseR and GetDistance(Target) <= Spells.spellR.range and getManaPercent() >= Config.LaneclearSettings.manaR then 
 					CastSpell(_R)
 					turtle = false
-					phoenix = true
+					bear = false
+					tiger = false
 				end
 			end
 	end
@@ -375,10 +396,10 @@ end
 function Harass()
 	if Config.KeySettings.Harass then
 		if Target and ValidTarget(Target) and not Target.dead then
-			if EREADY and Config.HarassSettings.UseE and GetDistance(Target) <= Spells.spellE.range then CastSpell(_E) end
-			if QREADY and Config.HarassSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_Q) end
-			if RREADY and Config.HarassSettings.UseR and GetDistance(Target) <= Spells.spellR.range then CastSpell(_R) end
-			if WREADY and Config.HarassSettings.UseW and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) end
+			if not bear and EREADY and Config.HarassSettings.UseE and GetDistance(Target) <= Spells.spellE.range then CastSpell(_E) end
+			if not tiger and QREADY and Config.HarassSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_Q) end
+			if not phoenix and RREADY and Config.HarassSettings.UseR and GetDistance(Target) <= Spells.spellR.range then CastSpell(_R) end
+			if not turtle and WREADY and Config.HarassSettings.UseW and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) end
 		end
 	end
 end
@@ -488,3 +509,4 @@ function Buff_Rem(unit, buff)
 		end
 	end
 end		
+
