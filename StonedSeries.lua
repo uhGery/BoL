@@ -3,7 +3,7 @@
 	by uhGery
 ]]--
 
-local version = 0.1
+local version = 1
 local AUTOUPDATE = true
 local UPDATE_HOST = "raw.github.com"
 local UPDATE_PATH = "/uhGery/BoL/master/StonedSeries.lua".."?rand="..math.random(1,10000)
@@ -13,21 +13,16 @@ local lastRG = 0
 local lastICFJ = 0
 local lastIDCF = 0
 local lastICF = 0
+local Target = nil
 local UdyrLoaded, WWLoaded = false
 
-if FileExist(LIB_PATH .. "/AllClass.lua") then
-	require "AllClass"
-end
+function _AutoupdaterMsg(msg) print("<font color=\"#1C942A\">Stoned</font><font color =\"#DBD142\">Series</font> <font color=\"#FFFFFF\">"..msg..".</font>") end
+
+require "AllClass"
 
 if myHero.charName == "Udyr" then UdyrLoaded = true
 elseif myHero.charName == "Warwick" then WWLoaded = true
 else return end
-
-if UdyrLoaded then
-MyTrueRange = 190
-elseif WWLoaded then
-MyTrueRange = 190
-end
 
 function OnLoad()
 	if not loaded then
@@ -38,8 +33,13 @@ function OnLoad()
 		elseif WWLoaded then
 			PrintChat("Welcome to StonedSeries Warwick. GL & HF!")
 		end
-		Config.KeySettings:permaShow("Combo")
-		Config.KeySettings:permaShow("Clear")
+		
+		AddApplyBuffCallback(Buff_Add)
+		AddRemoveBuffCallback(Buff_Rem)
+		ts = TargetSelector(TARGET_LESS_CAST_PRIORITY, 800)
+		local JungleMinions = minionManager(MINION_JUNGLE, 600, myHero, MINION_SORT_MAXHEALTH_DEC)
+		local EnemyMinions = minionManager(MINION_ENEMY, 600, myHero, MINION_SORT_MAXHEALTH_DEC)
+
 		if _G.Reborn_Initialised then
 			orbwalkCheck()
 		elseif _G.Reborn_Loaded then
@@ -47,17 +47,6 @@ function OnLoad()
 			return
 		else
 			orbwalkCheck()
-		end
-		AddApplyBuffCallback(Buff_Add)
-		AddRemoveBuffCallback(Buff_Rem)
-		if UdyrLoaded then 
-			ts = TargetSelector(TARGET_LESS_CAST_PRIORITY, 800, DAMAGE_MAGIC)
-			local JungleMinions = minionManager(MINION_JUNGLE, 600, myHero, MINION_SORT_MAXHEALTH_DEC)
-			local EnemyMinions = minionManager(MINION_ENEMY, 600, myHero, MINION_SORT_MAXHEALTH_DEC)
-		elseif WWLoaded then 
-			ts = TargetSelector(TARGET_LESS_CAST_PRIORITY, 800, DAMAGE_MAGIC)
-			local JungleMinions = minionManager(MINION_JUNGLE, 600, myHero, MINION_SORT_MAXHEALTH_DEC)
-			local EnemyMinions = minionManager(MINION_ENEMY, 600, myHero, MINION_SORT_MAXHEALTH_DEC)
 		end
   end
 end
@@ -96,11 +85,10 @@ function orbwalkCheck()
 	end
 end
 
-function getTarg()
+function GetTarget()
 	ts:update()
-	if _G.AutoCarry and ValidTarget(_G.AutoCarry.Crosshair:GetTarget()) then _G.AutoCarry.Crosshair:SetSkillCrosshairRange(800) return _G.AutoCarry.Crosshair:GetTarget() end		
-	if ValidTarget(SelectedTarget) and SelectedTarget.type == myHero.type then return SelectedTarget end
-	if MMALoaded and ValidTarget(_G.MMA_Target) then return _G.MMA_Target end
+	if _G.MMA_Target and _G.MMA_Target.type == myHero.type then return _G.MMA_Target end
+	if _G.AutoCarry and _G.AutoCarry.Crosshair and _G.AutoCarry.Attack_Crosshair and _G.AutoCarry.Attack_Crosshair.target and _G.AutoCarry.Attack_Crosshair.target.type == myHero.type then return _G.AutoCarry.Attack_Crosshair.target end
 	return ts.target
 end
 
@@ -155,162 +143,145 @@ if os.clock() - lastIDCF < 12 then return end
 end
 
 function Menu()
-	if myHero.charName == "Udyr" then
-		Config = scriptConfig("StonedUdyr", "uhGery")
-		TargetSelector.name = "Udyr"
-		Config:addTS(ts)
-	
-			Config:addSubMenu("[Key Binding]", "KeySettings")
-				Config.KeySettings:addParam("Combo", "Combo Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("32"))
-				Config.KeySettings:addParam("Harass", "Harass Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("C"))
-				Config.KeySettings:addParam("Clear", "Clear Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("V"))
-				Config.KeySettings:addParam("LastHit", "LastHit Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("X"))
-	
-			Config:addSubMenu("[Combo]", "ComboSettings")
-				Config.ComboSettings:addParam("StyleCombo", "Style Combo", SCRIPT_PARAM_LIST, 1, {"Tiger", "Phoenix"})
-				Config.ComboSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.ComboSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.ComboSettings:addParam("lifeW", "% life min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.ComboSettings:addParam("manaE", "% mana min for use E", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.ComboSettings:addParam("manaR", "% mana min for use R", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-	
-			Config:addSubMenu("[Harass]", "HarassSettings")
-				Config.HarassSettings:addParam("UseQ", "Use Q in Harass", SCRIPT_PARAM_ONOFF, true)
-				Config.HarassSettings:addParam("UseW", "Use W in Harass", SCRIPT_PARAM_ONOFF, true)
-				Config.HarassSettings:addParam("UseE", "Use E in Harass", SCRIPT_PARAM_ONOFF, true)
-				Config.HarassSettings:addParam("UseR", "Use R in Harass", SCRIPT_PARAM_ONOFF, true)
-	
-			Config:addSubMenu("[Laneclear]", "LaneclearSettings")
-				Config.LaneclearSettings:addParam("UseQ", "Use Q in Laneclear", SCRIPT_PARAM_ONOFF, true)
-				Config.LaneclearSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.LaneclearSettings:addParam("UseW", "Use W in Laneclear", SCRIPT_PARAM_ONOFF, true)
-				Config.LaneclearSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.LaneclearSettings:addParam("UseE", "Use E in Laneclear", SCRIPT_PARAM_ONOFF, true)
-				Config.LaneclearSettings:addParam("manaE", "% mana min for use E", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.LaneclearSettings:addParam("UseR", "Use R in Laneclear", SCRIPT_PARAM_ONOFF, true)
-				Config.LaneclearSettings:addParam("manaR", "% mana min for use R", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+	if UdyrLoaded then
+		Config = scriptConfig("StonedUdyr", "stonedudyr")
 		
-			Config:addSubMenu("[Jungleclear]", "JungleclearSettings")
-				Config.JungleclearSettings:addParam("StyleJC", "Style Jungleclear", SCRIPT_PARAM_LIST, 1, {"Tiger", "Phoenix"})
-				Config.JungleclearSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.JungleclearSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.JungleclearSettings:addParam("manaR", "% mana min for use R", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config:addSubMenu("[Key Binding]", "KeySettings")
+			Config.KeySettings:addParam("Combo", "Combo Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("32"))
+			Config.KeySettings:addParam("Harass", "Harass Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("C"))
+			Config.KeySettings:addParam("Clear", "Clear Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("V"))
+			Config.KeySettings:addParam("LastHit", "LastHit Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("X"))
 		
-			Config:addSubMenu("[Auto]", "AutoSettings")
-				Config.AutoSettings:addParam("upgradeTB", "Buy Trinket Blue", SCRIPT_PARAM_ONOFF, true)
-				Config.AutoSettings:addParam("autolevel","Auto level", SCRIPT_PARAM_ONOFF, false)
-				Config.AutoSettings:addParam("levels","Select style", SCRIPT_PARAM_LIST, 1, {"Tiger","Phoenix"})
+		Config:addSubMenu("[Combo]", "ComboSettings")
+			Config.ComboSettings:addParam("StyleCombo", "Style Combo", SCRIPT_PARAM_LIST, 1, {"Tiger", "Phoenix"})
+			Config.ComboSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.ComboSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.ComboSettings:addParam("lifeW", "% life min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.ComboSettings:addParam("manaE", "% mana min for use E", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.ComboSettings:addParam("manaR", "% mana min for use R", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+	
+		Config:addSubMenu("[Harass]", "HarassSettings")
+			Config.HarassSettings:addParam("UseQ", "Use Q in Harass", SCRIPT_PARAM_ONOFF, true)
+			Config.HarassSettings:addParam("UseW", "Use W in Harass", SCRIPT_PARAM_ONOFF, true)
+			Config.HarassSettings:addParam("UseE", "Use E in Harass", SCRIPT_PARAM_ONOFF, true)
+			Config.HarassSettings:addParam("UseR", "Use R in Harass", SCRIPT_PARAM_ONOFF, true)
+	
+		Config:addSubMenu("[Laneclear]", "LaneclearSettings")
+			Config.LaneclearSettings:addParam("UseQ", "Use Q in Laneclear", SCRIPT_PARAM_ONOFF, true)
+			Config.LaneclearSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.LaneclearSettings:addParam("UseW", "Use W in Laneclear", SCRIPT_PARAM_ONOFF, true)
+			Config.LaneclearSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.LaneclearSettings:addParam("UseE", "Use E in Laneclear", SCRIPT_PARAM_ONOFF, true)
+			Config.LaneclearSettings:addParam("manaE", "% mana min for use E", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.LaneclearSettings:addParam("UseR", "Use R in Laneclear", SCRIPT_PARAM_ONOFF, true)
+			Config.LaneclearSettings:addParam("manaR", "% mana min for use R", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		
+		Config:addSubMenu("[Jungleclear]", "JungleclearSettings")
+			Config.JungleclearSettings:addParam("StyleJC", "Style Jungleclear", SCRIPT_PARAM_LIST, 1, {"Tiger", "Phoenix"})
+			Config.JungleclearSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.JungleclearSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.JungleclearSettings:addParam("manaR", "% mana min for use R", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		
+		Config:addSubMenu("[Auto]", "AutoSettings")
+			Config.AutoSettings:addParam("upgradeTB", "Buy Trinket Blue", SCRIPT_PARAM_ONOFF, true)
+			Config.AutoSettings:addParam("autolevel","Auto level", SCRIPT_PARAM_ONOFF, false)
+			Config.AutoSettings:addParam("levels","Select style", SCRIPT_PARAM_LIST, 1, {"Tiger","Phoenix"})
 				
-			Config:addSubMenu("[Auto Potions]", "PotionsSettings")
-				Config.PotionsSettings:addParam("useRG", "Auto use Regeneration Potions", SCRIPT_PARAM_ONOFF, true)
-				Config.PotionsSettings:addParam("lifeRG", "% life min for RG", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.PotionsSettings:addParam("useICFJ", "Auto use Crystal Flask Junle", SCRIPT_PARAM_ONOFF, true)
-				Config.PotionsSettings:addParam("lifeICFJ", "% life min for CFJ", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.PotionsSettings:addParam("useIDCF", "Auto use Dark Crystal Flask", SCRIPT_PARAM_ONOFF, true)
-				Config.PotionsSettings:addParam("lifeIDCF", "% life min for DCF", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.PotionsSettings:addParam("useICF", "Auto use Crystal Flask", SCRIPT_PARAM_ONOFF, true)
-				Config.PotionsSettings:addParam("lifeICF", "% life min for CF", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config:addSubMenu("[Auto Potions]", "PotionsSettings")
+			Config.PotionsSettings:addParam("useRG", "Auto use Regeneration Potions", SCRIPT_PARAM_ONOFF, true)
+			Config.PotionsSettings:addParam("lifeRG", "% life min for RG", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.PotionsSettings:addParam("useICFJ", "Auto use Crystal Flask Junle", SCRIPT_PARAM_ONOFF, true)
+			Config.PotionsSettings:addParam("lifeICFJ", "% life min for CFJ", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.PotionsSettings:addParam("useIDCF", "Auto use Dark Crystal Flask", SCRIPT_PARAM_ONOFF, true)
+			Config.PotionsSettings:addParam("lifeIDCF", "% life min for DCF", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.PotionsSettings:addParam("useICF", "Auto use Crystal Flask", SCRIPT_PARAM_ONOFF, true)
+			Config.PotionsSettings:addParam("lifeICF", "% life min for CF", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			
 	elseif WWLoaded then
-		Config = scriptConfig("StonedWarwick", "uhGery")
-		TargetSelector.name = "Warwick"
-		Config:addTS(ts)
+		Config = scriptConfig("StonedWarwick", "stonedww")
+		
+		Config:addSubMenu("[Key Binding]", "KeySettings")
+			Config.KeySettings:addParam("Combo", "Combo Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("32"))
+			Config.KeySettings:addParam("Harass", "Harass Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("C"))
+			Config.KeySettings:addParam("Clear", "Clear Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("V"))
+			Config.KeySettings:addParam("LastHit", "LastHit Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("X"))
+		
+		
+		Config:addSubMenu("[Combo]", "ComboSettings")
+			Config.ComboSettings:addParam("useQ", "Use Q in combo", SCRIPT_PARAM_ONOFF, true)
+			Config.ComboSettings:addParam("useW", "Use W in combo", SCRIPT_PARAM_ONOFF, true)
+			Config.ComboSettings:addParam("rangeW", "Use W if enemy in range", SCRIPT_PARAM_SLICE, 400, 50, 800, 0)
+			Config.ComboSettings:addParam("useR", "Use R in combo", SCRIPT_PARAM_ONOFF, true)
+			Config.ComboSettings:addParam("modeR", "R usage", SCRIPT_PARAM_LIST, 1, {"Always", "Killable", "Smart"}) 
 	
-			Config:addSubMenu("[Key Binding]", "KeySettings")
-				Config.KeySettings:addParam("Combo", "Combo Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("32"))
-				Config.KeySettings:addParam("Harass", "Harass Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("C"))
-				Config.KeySettings:addParam("Clear", "Clear Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("V"))
-				Config.KeySettings:addParam("LastHit", "LastHit Key", SCRIPT_PARAM_ONKEYDOWN, false, string.byte ("X"))
-	
-			Config:addSubMenu("[Combo]", "ComboSettings")
-				Config.ComboSettings:addParam("useQ", "Use Q in combo", SCRIPT_PARAM_ONOFF, true)
-				Config.ComboSettings:addParam("useW", "Use W in combo", SCRIPT_PARAM_ONOFF, true)
-				Config.ComboSettings:addParam("rangeW", "Use W if enemy in range", SCRIPT_PARAM_SLICE, 400, 50, 800, 0)
-				Config.ComboSettings:addParam("useR", "Use R in combo", SCRIPT_PARAM_ONOFF, true)
-				Config.ComboSettings:addParam("modeR", "R usage", SCRIPT_PARAM_LIST, 1, {"Always", "Killable", "Smart"}) 
-	
-			Config:addSubMenu("[Harass]", "HarassSettings")
-				Config.HarassSettings:addParam("UseQ", "Use Q in Harass", SCRIPT_PARAM_ONOFF, true)
-				Config.HarassSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config:addSubMenu("[Harass]", "HarassSettings")
+			Config.HarassSettings:addParam("UseQ", "Use Q in Harass", SCRIPT_PARAM_ONOFF, true)
+			Config.HarassSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 				
-			Config:addSubMenu("[Laneclear]", "LaneclearSettings")
-				Config.LaneclearSettings:addParam("UseQ", "Use Q in Laneclear", SCRIPT_PARAM_ONOFF, true)
-				Config.LaneclearSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.LaneclearSettings:addParam("UseW", "Use W in Laneclear", SCRIPT_PARAM_ONOFF, true)
-				Config.LaneclearSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config:addSubMenu("[Laneclear]", "LaneclearSettings")
+			Config.LaneclearSettings:addParam("UseQ", "Use Q in Laneclear", SCRIPT_PARAM_ONOFF, true)
+			Config.LaneclearSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.LaneclearSettings:addParam("UseW", "Use W in Laneclear", SCRIPT_PARAM_ONOFF, true)
+			Config.LaneclearSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 		
-			Config:addSubMenu("[Jungleclear]", "JungleclearSettings")
-				Config.JungleclearSettings:addParam("UseQ", "Use Q in jungleclear", SCRIPT_PARAM_ONOFF, true)
-				Config.JungleclearSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.JungleclearSettings:addParam("UseW", "Use W in jungleclear", SCRIPT_PARAM_ONOFF, true)
-				Config.JungleclearSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config:addSubMenu("[Jungleclear]", "JungleclearSettings")
+			Config.JungleclearSettings:addParam("UseQ", "Use Q in jungleclear", SCRIPT_PARAM_ONOFF, true)
+			Config.JungleclearSettings:addParam("manaQ", "% mana min for use Q", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.JungleclearSettings:addParam("UseW", "Use W in jungleclear", SCRIPT_PARAM_ONOFF, true)
+			Config.JungleclearSettings:addParam("manaW", "% mana min for use W", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
 		
-			Config:addSubMenu("[Killsteal]", "KS")
-				Config.KS:addParam("ksQ", "Use Q to KS", SCRIPT_PARAM_ONOFF, true)
-				Config.KS:addParam("ksR", "Use R to KS", SCRIPT_PARAM_ONOFF, true)
+		Config:addSubMenu("[Killsteal]", "KS")
+			Config.KS:addParam("ksQ", "Use Q to KS", SCRIPT_PARAM_ONOFF, true)
+			Config.KS:addParam("ksR", "Use R to KS", SCRIPT_PARAM_ONOFF, true)
 		
-			Config:addSubMenu("[Draws]", "DrawsSettings")
-				Config.DrawsSettings:addParam("DDraw", "Disable All Draws", SCRIPT_PARAM_ONOFF, false)
-				Config.DrawsSettings:addParam("DrawQ", "Draw Q range", SCRIPT_PARAM_ONOFF, true)
-				Config.DrawsSettings:addParam("DrawR", "Draw R range", SCRIPT_PARAM_ONOFF, true)
-				Config.DrawsSettings:addParam("DrawAA", "Draw AA range", SCRIPT_PARAM_ONOFF, true)
-				Config.DrawsSettings:addParam("Target", "Draw Circle on Target", SCRIPT_PARAM_ONOFF, true)
+		Config:addSubMenu("[Draws]", "DrawsSettings")
+			Config.DrawsSettings:addParam("DDraw", "Disable All Draws", SCRIPT_PARAM_ONOFF, false)
+			Config.DrawsSettings:addParam("DrawQ", "Draw Q range", SCRIPT_PARAM_ONOFF, true)
+			Config.DrawsSettings:addParam("DrawR", "Draw R range", SCRIPT_PARAM_ONOFF, true)
+			Config.DrawsSettings:addParam("DrawAA", "Draw AA range", SCRIPT_PARAM_ONOFF, true)
+			Config.DrawsSettings:addParam("Target", "Draw Circle on Target", SCRIPT_PARAM_ONOFF, true)
 	
-			Config:addSubMenu("[Auto]", "AutoSettings")
-				Config.AutoSettings:addParam("upgradeTB", "Buy Trinket Blue", SCRIPT_PARAM_ONOFF, true)
-				Config.AutoSettings:addParam("autolevel","Auto level", SCRIPT_PARAM_ONOFF, false)
+		Config:addSubMenu("[Auto]", "AutoSettings")
+			Config.AutoSettings:addParam("upgradeTB", "Buy Trinket Blue", SCRIPT_PARAM_ONOFF, true)
+			Config.AutoSettings:addParam("autolevel","Auto level", SCRIPT_PARAM_ONOFF, false)
 		
-			Config:addSubMenu("[Auto Potions]", "PotionsSettings")
-				Config.PotionsSettings:addParam("useRG", "Auto use Regeneration Potions", SCRIPT_PARAM_ONOFF, true)
-				Config.PotionsSettings:addParam("lifeRG", "% life min for RG", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.PotionsSettings:addParam("useICFJ", "Auto use Crystal Flask Junle", SCRIPT_PARAM_ONOFF, true)
-				Config.PotionsSettings:addParam("lifeICFJ", "% life min for CFJ", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.PotionsSettings:addParam("useIDCF", "Auto use Dark Crystal Flask", SCRIPT_PARAM_ONOFF, true)
-				Config.PotionsSettings:addParam("lifeIDCF", "% life min for DCF", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
-				Config.PotionsSettings:addParam("useICF", "Auto use Crystal Flask", SCRIPT_PARAM_ONOFF, true)
-				Config.PotionsSettings:addParam("lifeICF", "% life min for CF", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+		Config:addSubMenu("[Auto Potions]", "PotionsSettings")
+			Config.PotionsSettings:addParam("useRG", "Auto use Regeneration Potions", SCRIPT_PARAM_ONOFF, true)
+			Config.PotionsSettings:addParam("lifeRG", "% life min for RG", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.PotionsSettings:addParam("useICFJ", "Auto use Crystal Flask Junle", SCRIPT_PARAM_ONOFF, true)
+			Config.PotionsSettings:addParam("lifeICFJ", "% life min for CFJ", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.PotionsSettings:addParam("useIDCF", "Auto use Dark Crystal Flask", SCRIPT_PARAM_ONOFF, true)
+			Config.PotionsSettings:addParam("lifeIDCF", "% life min for DCF", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+			Config.PotionsSettings:addParam("useICF", "Auto use Crystal Flask", SCRIPT_PARAM_ONOFF, true)
+			Config.PotionsSettings:addParam("lifeICF", "% life min for CF", SCRIPT_PARAM_SLICE, 75, 0, 100, 0)
+
 	end
 end
 
 function OnDraw()
 	if myHero.dead then return end
-		if myHero.charName == "Udyr" then
-			DrawCircle(myHero.x, myHero.y, myHero.z, MyTrueRange, ARGB(255, 255, 0, 0))
-		elseif myHero.charName == "Warwick" then
+		if UdyrLoaded then
+			DrawCircle(myHero.x, myHero.y, myHero.z, 190, ARGB(255, 255, 0, 0))
+			if Target ~= nil then 
+				DrawHitBox(Target)
+			end
+		elseif WWLoaded then
 			if not Config.DrawsSettings.DDraw then
 			if Config.DrawsSettings.DrawQ and QREADY then
-				DrawCircle(myHero.x, myHero.y, myHero.z, Spells.spellQ.range, ARGB(255, 255, 0, 0))
+				DrawCircle(myHero.x, myHero.y, myHero.z, 400, ARGB(255, 255, 0, 0))
 			end
 			if Config.DrawsSettings.DrawR and RREADY then
-				DrawCircle(myHero.x, myHero.y, myHero.z, Spells.spellR.range, ARGB(255, 255, 0, 0))
+				DrawCircle(myHero.x, myHero.y, myHero.z, 700, ARGB(255, 255, 0, 0))
 			end
 			if Config.DrawsSettings.DrawAA then
-				DrawCircle(myHero.x, myHero.y, myHero.z, MyTrueRange, ARGB(255, 255, 0, 0))
+				DrawCircle(myHero.x, myHero.y, myHero.z, 190, ARGB(255, 255, 0, 0))
 			end
 			if Target ~= nil then 
 				DrawHitBox(Target)
 			end
 		end
-		for i = 1, myHero.buffCount do
-		local tBuff = myHero:getBuff(i)
-			if BuffIsValid(tBuff) then
-				DrawTextA(tBuff.name,12,20,20*i+20)
-			end
-		end
 	end
 end
-
-Spells = {
-	if UdyrLoaded then
-		spellQ = {range = 190}, 
-		spellW = {range = 190},
-		spellE = {range = 190},
-		spellR = {range = 190},
-	elseif WWLoaded then
-		spellQ = {range = 400}, 
-		spellW = {range = 0},
-		spellE = {range = 0},
-		spellR = {range = 700},
-}	end
 
 function readyCheck()
 	QREADY, WREADY, EREADY, RREADY = (myHero:CanUseSpell(_Q) == READY), (myHero:CanUseSpell(_W) == READY), (myHero:CanUseSpell(_E) == READY), (myHero:CanUseSpell(_R) == READY)
@@ -318,12 +289,14 @@ end
 
 function OnTick()
 	readyCheck()
-	Combo()	
-	Laneclear()
-	Jungleclear()
-	Harass()
+	Target = GetTarget()
+	if Config.KeySettings.Combo then Combo() end
+	if Config.KeySettings.Clear then Laneclear() end
+	if Config.KeySettings.Clear then Jungleclear() end
+	if Config.KeySettings.Harass then Harass() end
 	AutoPotion() 
 	StunCheck()
+	KillSteal()
 	if VIP_USER and Config.AutoSettings.autolevel then
 		if UdyrLoaded then
 			local levelSequenceT = {nil,2,3,1,1,2,1,2,1,2,3,2,3,3,3,4,4,4}
@@ -338,146 +311,142 @@ function OnTick()
 			autoLevelSetSequence(levelSequence)
 		end
 	end	
-	KillSteal()
 end
 
 function Combo()
 	if UdyrLoaded then
-	Target = getTarg()
-		if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 1 and ValidTarget(Target) and not Target.dead then
-			if myHero.level >= 3 then
-				if not stuned then
-					if not bear and EREADY and GetDistance(Target) <= 650 and getManaPercent() >= Config.ComboSettings.manaE then
-							CastSpell(_E)
-							tiger = false
-							turtle = false
-							phoenix = false
-							stunT = os.clock()
+				if Config.ComboSettings.StyleCombo == 1 and ValidTarget(Target) and not Target.dead then
+					if myHero.level >= 3 then
+						if not stuned then
+							if not bear and EREADY and GetDistance(Target) <= 650 and getManaPercent() >= Config.ComboSettings.manaE then
+									CastSpell(_E)
+									tiger = false
+									turtle = false
+									phoenix = false
+									stunT = os.clock()
+								end
+						if stuned then
+							if os.clock() - stunT < 6 then return end
+								if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
+									CastSpell(_E)
+									phoenix = false
+									turtle = false
+									tiger = false
+									stunT = os.clock()
+								end
 						end
-				if stuned then
-					if os.clock() - stunT < 6 then return end
-						if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
-							CastSpell(_E)
-							phoenix = false
-							turtle = false
-							tiger = false
-							stunT = os.clock()
-						end
-				end
-			end
-				if not tiger and QREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaQ and stuned then
-						CastSpell(_Q)
-						phoenix = false
-						turtle = false
-						bear = false
 					end
-				if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
-						CastSpell(_W)
-						phoenix = false
-						tiger = false
-						bear = false
-				end
-			end
-			if myHero.level <= 2 then
-				if not tiger and QREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaQ then
-						CastSpell(_Q)
-						phoenix = false
-						turtle = false
-						bear = false
-					end
-				if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
-						CastSpell(_W)
-						phoenix = false
-						tiger = false
-						bear = false
-				end
-			end
-		end
-	
-		if Config.KeySettings.Combo and  Config.ComboSettings.StyleCombo == 2 and ValidTarget(Target) and not Target.dead then
-			if myHero.level >= 3 then
-				if not stuned then
-					if not bear and EREADY and GetDistance(Target) <= 650 and getManaPercent() >= Config.ComboSettings.manaE then
-						CastSpell(_E)
-						tiger = false
-						turtle = false
-						phoenix = false
-						stunT = os.clock()
-					end
-					if stuned then
-						if os.clock() - stunT < 6 then return end
-							if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
-								CastSpell(_E)
+						if not tiger and QREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaQ and stuned then
+								CastSpell(_Q)
 								phoenix = false
 								turtle = false
+								bear = false
+							end
+						if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
+								CastSpell(_W)
+								phoenix = false
 								tiger = false
+								bear = false
+						end
+					end
+					if myHero.level <= 2 then
+						if not tiger and QREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaQ then
+								CastSpell(_Q)
+								phoenix = false
+								turtle = false
+								bear = false
+							end
+						if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
+								CastSpell(_W)
+								phoenix = false
+								tiger = false
+								bear = false
+						end
+					end
+				end
+			
+				if Config.ComboSettings.StyleCombo == 2 and ValidTarget(Target) and not Target.dead then
+					if myHero.level >= 3 then
+						if not stuned then
+							if not bear and EREADY and GetDistance(Target) <= 650 and getManaPercent() >= Config.ComboSettings.manaE then
+								CastSpell(_E)
+								tiger = false
+								turtle = false
+								phoenix = false
 								stunT = os.clock()
 							end
-					end
-				end
-				if not phoenix and RREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaR and stuned then
-					CastSpell(_R)
-					turtle = false
-					tiger = false
-					bear = false
-				end
-				if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
-					CastSpell(_W)
-					phoenix = false
-					tiger = false
-					bear = false
-				end
-			end
-	
-		if myHero.level <= 2 then
-				if not phoenix and RREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaR then
-					CastSpell(_R)
-					turtle = false
-					tiger = false
-					bear = false
-				end
-				if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
-					CastSpell(_W)
-					phoenix = false
-					tiger = false
-					bear = false
-				end
-			end
-		end
-	elseif WWLoaded then
-	Target = getTarg()
-		if Config.KeySettings.Combo and ValidTarget(Target) and not Target.dead then
-			if Config.ComboSettings.useQ then
-				CastQ(Target)
-			end
-			if WREADY and Config.ComboSettings.useW and GetDistance(Target) <= Config.ComboSettings.rangeW then
-				CastSpell(_W)
-			end
-			if RREADY and Config.ComboSettings.useR then
-				if Config.ComboSettings.modeR == 1 then
-					CastR(Target)
-				end 
-				if Config.ComboSettings.modeR == 2 then
-						if getDmg("R", Target, myHero) * 0.95 > Target.health then
-							CastR(Target)
+							if stuned then
+								if os.clock() - stunT < 6 then return end
+									if GetDistance(Target) <= 650 and not bear and getManaPercent() >= Config.ComboSettings.manaE then
+										CastSpell(_E)
+										phoenix = false
+										turtle = false
+										tiger = false
+										stunT = os.clock()
+									end
+							end
 						end
-				end
-				if Config.ComboSettings.modeR == 3 then
-					if getDmg("R", Target, myHero) * 0.95 > Target.health or (getHealthPercent(Target) - getDmg("R",Target,myHero) <= 20) then
-						CastR(Target)
+						if not phoenix and RREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaR and stuned then
+							CastSpell(_R)
+							turtle = false
+							tiger = false
+							bear = false
+						end
+						if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
+							CastSpell(_W)
+							phoenix = false
+							tiger = false
+							bear = false
+						end
+					end
+			
+				if myHero.level <= 2 then
+						if not phoenix and RREADY and GetDistance(Target) <= 250 and getManaPercent() >= Config.ComboSettings.manaR then
+							CastSpell(_R)
+							turtle = false
+							tiger = false
+							bear = false
+						end
+						if not turtle and WREADY and getHealthPercent() <= Config.ComboSettings.lifeW and getManaPercent() >= Config.ComboSettings.manaW then
+							CastSpell(_W)
+							phoenix = false
+							tiger = false
+							bear = false
+						end
 					end
 				end
-			end
-		end
+	elseif WWLoaded then
+
+				if ValidTarget(Target) and not Target.dead then
+					if Config.ComboSettings.useQ then
+						CastQ(Target)
+					end
+					if WREADY and Config.ComboSettings.useW and GetDistance(Target) <= Config.ComboSettings.rangeW then
+						CastSpell(_W)
+					end
+					if RREADY and Config.ComboSettings.useR then
+						if Config.ComboSettings.modeR == 1 then
+							CastR(Target)
+						end 
+						if Config.ComboSettings.modeR == 2 then
+								if getDmg("R", Target, myHero) * 0.95 > Target.health then
+									CastR(Target)
+								end
+						end
+						if Config.ComboSettings.modeR == 3 then
+							if getDmg("R", Target, myHero) * 0.95 > Target.health or (getHealthPercent(Target) - getDmg("R",Target,myHero) <= 20) then
+								CastR(Target)
+							end
+						end
+					end
+				end
 	end
 end
 
 function Jungleclear()
 	if UdyrLoaded then
-		if Config.KeySettings.Clear then
-			JungleMinions:update()
-			Target = nil
-			for i, minion in pairs(JungleMinions.objects) do
+		Target = nil
+			for _, minion in pairs(minionManager(MINION_JUNGLE, 600, myHero, MINION_SORT_MAXHEALTH_DEC).objects) do
 				if ValidTarget(minion) and not minion.dead then
 					if Target == nil then
 						Target = minion
@@ -485,15 +454,14 @@ function Jungleclear()
 						Target = minion
 					end
 				end
-			end
 			if Target ~= nil and ValidTarget(Target) and Config.JungleclearSettings.StyleJC == 1 then
-				if not tiger and QREADY and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.JungleclearSettings.manaQ then 
+				if not tiger and QREADY and GetDistance(Target) <= 190 and getManaPercent() >= Config.JungleclearSettings.manaQ then 
 					CastSpell(_Q)
 					turtle = false
 					phoenix = false
 					bear = false
 				end
-				if not turtle and WREADY and GetDistance(Target) <= Spells.spellW.range and getManaPercent() >= Config.JungleclearSettings.manaW then
+				if not turtle and WREADY and GetDistance(Target) <= 190 and getManaPercent() >= Config.JungleclearSettings.manaW then
 					if turtle then return end
 						CastSpell(_W)
 						tiger = false
@@ -502,13 +470,13 @@ function Jungleclear()
 					end
 				end
 				if Target ~= nil and ValidTarget(Target) and Config.JungleclearSettings.StyleJC == 2 then
-					if RREADY and not phoenix and GetDistance(Target) <= Spells.spellR.range and getManaPercent() >= Config.JungleclearSettings.manaR then
+					if RREADY and not phoenix and GetDistance(Target) <= 190 and getManaPercent() >= Config.JungleclearSettings.manaR then
 						CastSpell(_R)
 						turtle = false
 						bear = false
 						tiger = false
 					end
-					if not turtle and WREADY and GetDistance(Target) <= Spells.spellW.range and getManaPercent() >= Config.JungleclearSettings.manaW then
+					if not turtle and WREADY and GetDistance(Target) <= 190 and getManaPercent() >= Config.JungleclearSettings.manaW then
 						CastSpell(_W)
 						tiger = false
 						phoenix = false	
@@ -517,10 +485,8 @@ function Jungleclear()
 				end
 			end
 	elseif WWLoaded then
-		if Config.KeySettings.Clear then
-			JungleMinions:update()
-			Target = nil
-			for i, minion in pairs(JungleMinions.objects) do
+		Target = nil
+			for _, minion in pairs(minionManager(MINION_JUNGLE, 600, myHero, MINION_SORT_MAXHEALTH_DEC).objects) do
 				if ValidTarget(minion) and not minion.dead then
 					if Target == nil then
 						Target = minion
@@ -528,103 +494,97 @@ function Jungleclear()
 						Target = minion
 					end
 				end
-			end
 			if Target ~= nil and ValidTarget(Target) then
-				if Config.JungleclearSettings.UseQ and QREADY and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.JungleclearSettings.manaQ then
+				if Config.JungleclearSettings.UseQ and QREADY and GetDistance(Target) <= 400 and getManaPercent() >= Config.JungleclearSettings.manaQ then
 					CastSpell(_Q, Target)
 				end
 				if Config.JungleclearSettings.UseW and WREADY and GetDistance(Target) <= 400 and getManaPercent() >= Config.JungleclearSettings.manaW then
 					CastSpell(_W)
 				end
 			end
-		end
+			end
+		
 	end
 end
 
 function Laneclear()
 	if UdyrLoaded then
 		if Config.KeySettings.Clear then
-			EnemyMinions:update()
-				for i, minion in pairs(EnemyMinions.objects) do
-					if ValidTarget(minion) and not minion.dead then
-						if GetDistance(minion) < Spells.spellE.range then 
-							if Target == nil then
-								Target = minion
-							elseif GetDistance(minion) < GetDistance(Target) then
-								Target = minion
-							end
+			for i, minion in pairs(minionManager(MINION_ENEMY, 600, myHero, MINION_SORT_HEALTH_DEC).objects) do
+				if ValidTarget(minion) and not minion.dead then
+					if GetDistance(minion) < 190 then 
+						if Target == nil then
+							Target = minion
+						elseif GetDistance(minion) < GetDistance(Target) then
+							Target = minion
 						end
 					end
 				end
-				if Target ~= nil and ValidTarget(Target) then
-					if not tiger and QREADY and Config.LaneclearSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.LaneclearSettings.manaQ then
-						CastSpell(_Q)
-						turtle = false
-						phoenix = false
-						bear = false
-					end
-					if not turtle and WREADY and Config.LaneclearSettings.UseW and GetDistance(Target) <= Spells.spellW.range and getManaPercent() >= Config.LaneclearSettings.manaW then 
-						CastSpell(_W)
-						tiger = false
-						phoenix = false
-						bear = false
-					end
-					if not bear and EREADY and Config.LaneclearSettings.UseE and GetDistance(Target) <= Spells.spellE.range and getManaPercent() >= Config.LaneclearSettings.manaE then 
-						CastSpell(_E)
-						turtle = false
-						phoenix = false
-						tiger = false
-					end
-					if not phoenix and RREADY and Config.LaneclearSettings.UseR and GetDistance(Target) <= Spells.spellR.range and getManaPercent() >= Config.LaneclearSettings.manaR then 
-						CastSpell(_R)
-						turtle = false
-						bear = false
-						tiger = false
-					end
+			if Target ~= nil and ValidTarget(Target) then
+				if not tiger and QREADY and Config.LaneclearSettings.UseQ and GetDistance(Target) <= 190 and getManaPercent() >= Config.LaneclearSettings.manaQ then
+					CastSpell(_Q)
+					turtle = false
+					phoenix = false
+					bear = false
 				end
+				if not turtle and WREADY and Config.LaneclearSettings.UseW and GetDistance(Target) <= 190 and getManaPercent() >= Config.LaneclearSettings.manaW then 
+					CastSpell(_W)
+					tiger = false
+					phoenix = false
+					bear = false
+				end
+				if not bear and EREADY and Config.LaneclearSettings.UseE and GetDistance(Target) <= 190 and getManaPercent() >= Config.LaneclearSettings.manaE then 
+					CastSpell(_E)
+					turtle = false
+					phoenix = false
+					tiger = false
+				end
+				if not phoenix and RREADY and Config.LaneclearSettings.UseR and GetDistance(Target) <= 190 and getManaPercent() >= Config.LaneclearSettings.manaR then 
+					CastSpell(_R)
+					turtle = false
+					bear = false
+					tiger = false
+				end
+			end
 		end
+	end
 	elseif WWLoaded then
 		if Config.KeySettings.Clear then
-			EnemyMinions:update()
-				for i, minion in pairs(EnemyMinions.objects) do
-					if ValidTarget(minion) and not minion.dead then
-						if GetDistance(minion) < 500 then 
-							if Target == nil then
-								Target = minion
-							elseif GetDistance(minion) < GetDistance(Target) then
-								Target = minion
-							end
+			for i, minion in pairs(minionManager(MINION_ENEMY, 600, myHero, MINION_SORT_HEALTH_DEC).objects) do
+				if ValidTarget(minion) and not minion.dead then
+					if GetDistance(minion) < 500 then 
+						if Target == nil then
+							Target = minion
+						elseif GetDistance(minion) < GetDistance(Target) then
+							Target = minion
 						end
 					end
 				end
 				if Target ~= nil and ValidTarget(Target) then
-					if Config.LaneclearSettings.UseQ and QREADY and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.LaneclearSettings.manaQ and Target.health <= getDmg("Q",Target,myHero) then
+					if Config.LaneclearSettings.UseQ and QREADY and GetDistance(Target) <= 400 and getManaPercent() >= Config.LaneclearSettings.manaQ and Target.health <= getDmg("Q",Target,myHero) then
 						CastSpell(_Q, Target)
 					end
 					if Config.LaneclearSettings.UseW and WREADY and GetDistance(Target) <= 400 and getManaPercent() >= Config.LaneclearSettings.manaW then
 						CastSpell(_W)
 					end
 				end
+			end
 		end
 	end
 end
 
 function Harass()
 	if UdyrLoaded then
-		if Config.KeySettings.Harass then
 			if Target and ValidTarget(Target) and not Target.dead then
-				if not bear and EREADY and Config.HarassSettings.UseE and GetDistance(Target) <= Spells.spellE.range then CastSpell(_E) end
-				if not tiger and QREADY and Config.HarassSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range then CastSpell(_Q) end
-				if not phoenix and RREADY and Config.HarassSettings.UseR and GetDistance(Target) <= Spells.spellR.range then CastSpell(_R) end
-				if not turtle and WREADY and Config.HarassSettings.UseW and GetDistance(Target) <= Spells.spellW.range then CastSpell(_W) end
+				if not bear and EREADY and Config.HarassSettings.UseE and GetDistance(Target) <= 190 then CastSpell(_E) end
+				if not tiger and QREADY and Config.HarassSettings.UseQ and GetDistance(Target) <= 190 then CastSpell(_Q) end
+				if not phoenix and RREADY and Config.HarassSettings.UseR and GetDistance(Target) <= 190 then CastSpell(_R) end
+				if not turtle and WREADY and Config.HarassSettings.UseW and GetDistance(Target) <= 190 then CastSpell(_W) end
 			end
-		end
 	elseif WWLoaded then
-		if Config.KeySettings.Harass then
 			if Target and ValidTarget(Target) and not Target.dead then
-				if QREADY and Config.HarassSettings.UseQ and GetDistance(Target) <= Spells.spellQ.range and getManaPercent() >= Config.HarassSettings.manaQ then CastSpell(_Q, Target) end
+				if QREADY and Config.HarassSettings.UseQ and GetDistance(Target) <= 400 and getManaPercent() >= Config.HarassSettings.manaQ then CastSpell(_Q, Target) end
 			end
-		end
 	end
 end
 
@@ -686,7 +646,7 @@ function Buff_Rem(unit, buff)
 				end
 			end
 		end
-	elseif
+	elseif WWLoaded then
 		for i = 1, myHero.buffCount do
 			local tBuff = myHero:getBuff(i)
 			if BuffIsValid(tBuff) then
@@ -707,12 +667,12 @@ function KillSteal()
 	if WWLoaded then
 		if not Config.KS.ksQ and not Config.KS.ksR then return end
 		for i,enemy in pairs(GetEnemyHeroes()) do
-			if Config.KS.ksQ and ValidTarget(enemy, Spells.spellQ.range) and not enemy.dead and enemy.visible then
+			if Config.KS.ksQ and ValidTarget(enemy, 400) and not enemy.dead and enemy.visible then
 				if getDmg("Q",enemy,myHero) * 0.95 > enemy.health then
 					CastQ(ememy)
 				end
 			end
-			if Config.KS.ksR and ValidTarget(enemy, Spells.spellR.range) and not enemy.dead and enemy.visible then
+			if Config.KS.ksR and ValidTarget(enemy, 700) and not enemy.dead and enemy.visible then
 				if getDmg("R",enemy,myHero) * 0.95 > enemy.health then
 					CastR(ememy)
 				end
@@ -720,3 +680,19 @@ function KillSteal()
 		end
 	end
 end	
+
+function CastQ(Target)
+	if WWLoaded then
+		if ValidTarget(Target) and GetDistance(Target) <= 400 and QREADY then
+			CastSpell(_Q, Target)
+		end
+	end
+end
+
+function CastR(unit)
+	if WWLoaded then
+		if ValidTarget(Target) and GetDistance(unit) <= 700 and QREADY then
+			CastSpell(_R, unit)
+		end
+	end
+end
