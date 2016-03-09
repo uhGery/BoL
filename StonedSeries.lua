@@ -37,8 +37,6 @@ function OnLoad()
 		AddApplyBuffCallback(Buff_Add)
 		AddRemoveBuffCallback(Buff_Rem)
 		ts = TargetSelector(TARGET_LESS_CAST_PRIORITY, 800)
-		local JungleMinions = minionManager(MINION_JUNGLE, 600, myHero, MINION_SORT_MAXHEALTH_DEC)
-		local EnemyMinions = minionManager(MINION_ENEMY, 600, myHero, MINION_SORT_MAXHEALTH_DEC)
 
 		if _G.Reborn_Initialised then
 			orbwalkCheck()
